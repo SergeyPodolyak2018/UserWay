@@ -1,0 +1,113 @@
+(() => {
+  const CUSTOM_CLASS = 'test_input_alt_changer';
+  const TARGET_TAG = 'img';
+  const containerStyles = {
+    width: '217px',
+    height: '50px',
+    position: 'fixed',
+    display: 'flex',
+    border: '1px solid red',
+    'z-index': '1000',
+    'align-items': 'center',
+    'justify-content': 'space-around',
+  };
+
+  const inputStyles = {
+    width: '95%',
+    height: '95%',
+  };
+
+  const style = (node, styles) => Object.keys(styles).forEach(key => (node.style[key] = styles[key]));
+  const creator = type => document.createElement(type);
+  const eventKeyUppEdder = (element, target) => {
+    element.addEventListener('keyup', event => {
+      target.alt = event.target.value;
+    });
+  };
+  const eventClickPreventer = element => {
+    element.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+  };
+
+  const addInputField = (left, top, target) => {
+    const container = creator('div');
+    const input = creator('input');
+    eventKeyUppEdder(input, target);
+    eventClickPreventer(input);
+    input.type = 'text';
+    input.value = target.alt;
+    const containerPersonalStyles = { ...containerStyles };
+    containerPersonalStyles.left = left + 'px';
+    containerPersonalStyles.top = top + 'px';
+    container.classList.add(CUSTOM_CLASS);
+    style(container, containerPersonalStyles);
+    style(input, inputStyles);
+    container.appendChild(input);
+    document.body.appendChild(container);
+  };
+
+  const addCustomAlt = async (imgList)=>{
+    const resp = await fetch(`https://random-word-api.herokuapp.com/word?number=${imgList.length}`)
+    const wordList = await resp.json();
+    const updatedElements = imgList.map((el,index) => {
+          el.alt = wordList[index];
+          return el;
+        });
+    return updatedElements;
+  };
+
+  const addStylesIndicator = async (imgList)=>{
+    const updatedElements = imgList.map(el => {
+          el.style.outline = '2px solid red';
+          return el;
+        });
+    return updatedElements;
+  };
+
+  const addInputCallback = element => {
+    element.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const left = event.screenX;
+      const top = event.screenY;
+      addInputField(left, top, event.target);
+    });
+  };
+
+  const elementSearcher = async (source)=>{
+    try {
+      const newElements = source.getElementsByTagName(TARGET_TAG);
+      if (newElements.length > 0) {
+        let updatedElements = await addCustomAlt([...newElements]);
+        updatedElements = await addStylesIndicator(updatedElements);
+        updatedElements.forEach(el => {
+          addInputCallback(el);
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const isDOM = el => el instanceof Element;
+
+  document.addEventListener('click', () => {
+    const customInputs = [...document.getElementsByClassName(CUSTOM_CLASS)];
+    customInputs.forEach(element => element.remove());
+  });
+
+  window.addEventListener('DOMNodeInserted', e => {
+    try {
+      if (isDOM(e.target)) {
+        elementSearcher(e.target);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  elementSearcher(document);
+
+})();
